@@ -1,0 +1,38 @@
+cartridge region=NTSC
+  board type=1K1B revision=01
+  rom name=program.rom size=0x80000
+  ram name=save.ram size=0x800
+  map id=rom address=00-3f,80-bf:8000-ffff
+  map id=rom address=40-7d,c0-ff:0000-ffff
+  map id=ram address=20-3f,a0-bf:6000-7fff mask=0xe000
+  necdsp model=uPD7725 frequency=8000000
+    rom name=dsp1.program.rom size=0x1800
+    rom name=dsp1.data.rom size=0x800
+    ram size=0x200
+    map id=io address=00-1f,80-9f:6000-7fff select=0x1000
+  msu1
+    rom name=msu1.rom size=0x0000
+    map id=io address=00-3f,80-bf:2000-2007
+    
+board region=ntsc
+  rom name=program.rom size=0x80000
+    map address=00-3f,80-bf:8000-ffff
+    map address=40-7f,c0-ff:0000-ffff
+  ram name=save.ram size=0x800
+    map address=10-3f,90-bf:6000-7fff mask=0xe000
+  necdsp model=uPD7725 frequency=8000000
+    map address=00-1f,80-9f:6000-7fff mask=0xfff
+    prom name=dsp1.program.rom size=0x1800
+    drom name=dsp1.data.rom size=0x800
+    dram name=dsp1.data.ram size=0x200 volatile
+  msu1
+    rom name=msu1.rom size=0x0000
+    map address=00-3f,80-bf:2000-2007
+
+information
+  title:    Super Mario Kart MSU-1
+  name:     Super Mario Kart
+  region:   NA
+  revision: 1.0
+  sha256:   89ad4ba02a2518ca792cf96b61b36613f86baac92344c9c10d7fab5433bebc16
+  
