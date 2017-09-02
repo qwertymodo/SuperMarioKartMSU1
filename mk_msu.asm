@@ -25,6 +25,7 @@
 //*
 //*   32: Title Screen
 //*   35: Kart Select
+//*   36: Staff Roll
 //*   38: Mario Circuit**
 //*   41: Donut Plains**
 //*   44: Choco Island**
@@ -35,7 +36,6 @@
 //*   59: Battle Mode**
 //*   62: Tournament Win
 //*   65: Tournament Lose
-//*   68: Staff Roll
 //*   71: Rainbow Road**
 //*
 //*   80: Mario Circuit 3*
@@ -67,7 +67,7 @@ arch snes.cpu
 
 define hirom()
 
-define CHECKSUM($20D8)
+define CHECKSUM($FD22)
 
 include "snes_utils.inc"
 include "msu-1_defs.inc"
@@ -81,7 +81,7 @@ define REG_CURRENT_SONG_SHORT($012C)
 
 define REG_CURRENT_TRACK($7E0124)
 
-define VAL_VOLUME_INCREMENT(#$F0)
+define VAL_VOLUME_INCREMENT(#$10)
 define VAL_VOLUME_DECREMENT(#$10)
 define VAL_VOLUME_MUTE(#$0F)
 define VAL_VOLUME_HALF(#$80)
@@ -94,10 +94,18 @@ seek($81F435)
     nop; nop; nop;
 assert_end($81F43C)
 
-seek($C11FE0)
+seek($C11FA0)
 store_bank:
+    phb
+    phx
+    ldx #$0000
+    phx
+    plb
+    plb
+    plx
     stx {REG_CURRENT_SONG_SHORT}
     ldx #$C000
+    plb
     jml continue
 assert_end($C12000)
 
@@ -112,18 +120,36 @@ seek($8097A3)
     nop
 assert_end($8097A8)
 
-seek($C21E13)
+seek($C09615)
+    jsr msu_short_jump
+assert_end($C0961A)
+
+seek($C09300)
+msu_short_jump:
+    jsl msu_main
+    rts
+assert_end($C093F0)
+
+seek($C21E60)
 msu_main:
     pha
     phb
     pha
-    pha
     lda #$00
+    pha
     plb
     pla
     CHECK_FOR_MSU(spc_continue)
     cmp #$00
     beq do_fade
+
+// Command $1D: Mute
++;  cmp #$1D
+    bne +
+    lda #$00
+    sta {REG_TARGET_VOLUME}
+    sta {REG_MSU_VOLUME}
+    bra do_fade
 
 // Command $1E: Fade Out    
 +;  cmp #$1E
@@ -132,19 +158,34 @@ msu_main:
     sta {REG_TARGET_VOLUME}
     bra do_fade
 
-// Command $04: Play Song (Normal Speed)
-+;  cmp #$04
+// Command $1F: Fade In
++;  cmp #$1F
     bne +
-    brl play_song_normal
+    lda #$FF
+    sta {REG_TARGET_VOLUME}
+    bra do_fade
 
-// Command $07: Play Song (Fast Speed)
-+;  cmp #$07
-    bne +
-    brl play_song_fast
+// Command $04/$16: Play Song (Normal Speed)
++;  cmp #$04
+    beq +
+    cmp #$16
+    bne ++
++;  brl play_song_normal
+
+// Command $06/07/15: Play Song (Fast Speed)
++;  cmp #$06
+    beq +
+    cmp #$07
+    beq +
+    cmp #$15
+    bne ++
++;  brl play_song_fast
 
 // Command $08: Invincible
 +;  cmp #$08
 //  Resume??
+    bne +
+    brl play_song_normal
 
 // Commands >= $20: Send to SPC normally
 +;  cmp #$20
@@ -222,24 +263,27 @@ play_song_normal:
 // Check special tracks
     lda {REG_CURRENT_SONG}
 // Title Screen
-    beq +
+    beq ++
 // Select Screen
     cmp #$03
-    beq +
+    beq ++
 // Battle Mode
     cmp #$1B
-    beq +
+    beq ++
 // Tournament Win
     cmp #$1E
-    beq +
+    beq ++
 // Tournament Lose
     cmp #$21
-    beq +
+    beq ++
 // Staff Roll
     cmp #$24
-    beq +
+    bne +
+    jsr check_song_exists
+    bcc spc_continue
+    bra play_once
 // Check Track-Specific Songs
-    lda {REG_CURRENT_TRACK}
++;  lda {REG_CURRENT_TRACK}
     asl
     clc
     adc #$50
